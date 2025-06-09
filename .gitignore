@@ -1,0 +1,36 @@
+# Unity generated folders
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+UserSettings/
+MemoryCaptures/
+
+# VSCode and Rider
+.vscode/
+.idea/
+
+# Unity auto-generated project files
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+
+# OS-generated files
+.DS_Store
+*.swp
+*.bak
+*.orig
+*.tmp
+Thumbs.db
+
+# Unity Cache and Packages
+Library/
+ProjectSettings/EditorBuildSettings.asset
+ProjectSettings/ProjectVersion.txt
+Packages/packages-lock.json
