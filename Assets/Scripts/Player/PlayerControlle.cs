@@ -7,12 +7,12 @@ public class PlayerController_RB : MonoBehaviour
 {
     [Header("Player Settings")]
     public float speed = 10.0f;
-    public float jumpForce = 10.0f;
-    public float maxJumpHeight = 10.0f;
+    public float jumpForce = 50.0f;
+    public float maxJumpHeight = 100.0f;
 
     [Header("References")]
     public ParticleSystem landingParticles;
-    public ParticleSystem takeOffParticles;
+    //public ParticleSystem takeOffParticles;
 
     private Rigidbody _playerRB;
     private Transform _playerMesh;
@@ -50,7 +50,7 @@ public class PlayerController_RB : MonoBehaviour
 
         _moveDirection = (camForward * v + camRight * h).normalized;
 
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (Input.GetKeyDown(KeyCode.Space) && IsGrounded())
         {
             Jump();
         }
@@ -65,14 +65,9 @@ public class PlayerController_RB : MonoBehaviour
 
     private void Jump()
     {
-        float jumpHeight = Vector3.Distance(_worlds[_currentWorld].transform.position, transform.position) - maxJumpHeight;
-
-        if (jumpHeight < maxJumpHeight)
-        {
-            Vector3 gravityDir = (_worlds[_currentWorld].transform.position - transform.position).normalized;
-            _playerRB.AddForce(-gravityDir * jumpForce, ForceMode.Impulse);
-            takeOffParticles?.Play();
-        }
+        Vector3 gravityDir = (_worlds[_currentWorld].transform.position - transform.position).normalized;
+        _playerRB.AddForce(-gravityDir * jumpForce, ForceMode.Impulse);
+        //takeOffParticles?.Play();
     }
 
     private void RotateForward()
@@ -91,6 +86,13 @@ public class PlayerController_RB : MonoBehaviour
         {
             if (_worlds[i].name == worldName) return i;
         }
+        Debug.LogWarning($"World '{worldName}' not found in _worlds list.");
         return 0;
+    }
+
+    private bool IsGrounded()
+    {
+        Vector3 gravityDir = (_worlds[_currentWorld].transform.position - transform.position).normalized;
+        return Physics.Raycast(transform.position, gravityDir, out _, 1.2f);
     }
 }
