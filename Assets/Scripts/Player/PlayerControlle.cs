@@ -9,8 +9,10 @@ public class PlayerController_RB : MonoBehaviour
     public float speed = 10.0f;
     public float jumpForce = 50.0f;
     public float maxJumpHeight = 100.0f;
+    public float mouseSensitivity = 3.0f;
 
     [Header("References")]
+    public Transform cameraTransform;
     public ParticleSystem landingParticles;
     //public ParticleSystem takeOffParticles;
 
@@ -20,6 +22,7 @@ public class PlayerController_RB : MonoBehaviour
     private List<GameObject> _worlds = new List<GameObject>();
     private int _currentWorld = 0;
     private Vector3 _moveDirection;
+    private float verticalRotation = 0f;
 
     private void Start()
     {
@@ -38,8 +41,10 @@ public class PlayerController_RB : MonoBehaviour
     {
         if (_worldGravity.Attractor == null) return;
 
-        Vector3 camForward = Camera.main.transform.forward;
-        Vector3 camRight = Camera.main.transform.right;
+        HandleMouseLook();
+
+        Vector3 camForward = cameraTransform.forward;
+        Vector3 camRight = cameraTransform.right;
         Vector3 gravityUp = (transform.position - _worldGravity.Attractor.transform.position).normalized;
 
         camForward = Vector3.ProjectOnPlane(camForward, gravityUp).normalized;
@@ -94,5 +99,19 @@ public class PlayerController_RB : MonoBehaviour
     {
         Vector3 gravityDir = (_worlds[_currentWorld].transform.position - transform.position).normalized;
         return Physics.Raycast(transform.position, gravityDir, out _, 1.2f);
+    }
+
+    private void HandleMouseLook()
+    {
+        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
+        float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
+
+        // Horizontal rotation (yaw)
+        transform.Rotate(0f, mouseX, 0f);
+
+        // Vertical rotation (pitch, clamped)
+        verticalRotation -= mouseY;
+        verticalRotation = Mathf.Clamp(verticalRotation, -80f, 80f);
+        cameraTransform.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
     }
 }

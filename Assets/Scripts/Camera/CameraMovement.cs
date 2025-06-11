@@ -1,59 +1,68 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
-public class CameraMovement : MonoBehaviour
+public class SphericalCamera : MonoBehaviour
 {
-    // inspector variables
-    [SerializeField, Tooltip("Player transform for camera to follow")]
-    private Transform playerTransform;
-    [SerializeField, Tooltip("Camera offset from player (x not used)")]
-    private Vector3 offsetPosition = new Vector3(0, 5, 5);
-    [SerializeField]
-    private bool lookAt = true;
+    [SerializeField] private Transform playerTransform;
+    [SerializeField] private Transform planetTransform;
+    [SerializeField] private float distance = 10f;
+    [SerializeField] private float height = 5f;
+    [SerializeField] private float mouseSensitivity = 3f;
+    [SerializeField] private float movementFollowSpeed = 2f;
 
-    // privates
-    private Transform _mainCam = null;
+    private float yaw = 0f;
+    private float pitch = 20f;
 
-    // Use this for initialization
     private void Start()
     {
-        if(playerTransform == null)
-        {
-            Debug.LogError("CameraMovement is missing playerTransform");
-        }
-        else
-        {
-            _mainCam = Camera.main.transform;
-        }
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
-    // Update is called once per frame
     private void LateUpdate()
     {
-        UpdateCamera();
+        HandleInput();
+        AutoAlignToMovement();
+        UpdateCameraPosition();
     }
 
-    /// <summary>
-    /// Update camera position and rotation
-    /// </summary>
-    private void UpdateCamera()
+    private void HandleInput()
     {
-        if (playerTransform == null)
+        yaw += Input.GetAxis("Mouse X") * mouseSensitivity;
+        pitch -= Input.GetAxis("Mouse Y") * mouseSensitivity;
+        pitch = Mathf.Clamp(pitch, -60f, 60f);
+    }
+
+    private void AutoAlignToMovement()
+    {
+        Vector3 gravityUp = (playerTransform.position - planetTransform.position).normalized;
+
+        float h = Input.GetAxis("Horizontal");
+        float v = Input.GetAxis("Vertical");
+        Vector3 inputDir = new Vector3(h, 0, v);
+
+        if (inputDir.sqrMagnitude > 0.1f)
         {
-            return;
+            // Convert input to world space relative to gravity up
+            Vector3 camForward = Vector3.ProjectOnPlane(transform.forward, gravityUp).normalized;
+            Vector3 camRight = Vector3.Cross(gravityUp, camForward);
+
+            Vector3 moveWorldDir = (camForward * v + camRight * h).normalized;
+
+            // Calculate angle difference and smoothly rotate yaw
+            float targetYaw = Mathf.Atan2(moveWorldDir.x, moveWorldDir.z) * Mathf.Rad2Deg;
+            yaw = Mathf.LerpAngle(yaw, targetYaw, movementFollowSpeed * Time.deltaTime);
         }
-        // camera rig position
-        transform.position = playerTransform.position + -(playerTransform.forward * offsetPosition.z) + (playerTransform.up * offsetPosition.y);
-        // point camera at player
-        if (lookAt)
-        {
-            // point camera at player using players up direction
-            _mainCam.LookAt(playerTransform, playerTransform.up);
-        }
-        else
-        {
-            _mainCam.LookAt(playerTransform);
-        }
+    }
+
+    private void UpdateCameraPosition()
+    {
+        Vector3 gravityUp = (playerTransform.position - planetTransform.position).normalized;
+
+        Quaternion rotation = Quaternion.AngleAxis(yaw, gravityUp) * Quaternion.AngleAxis(pitch, Vector3.right);
+
+        Vector3 offset = rotation * new Vector3(0, height, -distance);
+        transform.position = playerTransform.position + offset;
+
+        transform.LookAt(playerTransform, gravityUp);
     }
 }
