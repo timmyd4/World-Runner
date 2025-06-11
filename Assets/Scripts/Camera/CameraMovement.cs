@@ -1,68 +1,66 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
 
-public class SphericalCamera : MonoBehaviour
+public class CameraMovement : MonoBehaviour
 {
-    [SerializeField] private Transform playerTransform;
-    [SerializeField] private Transform planetTransform;
-    [SerializeField] private float distance = 10f;
-    [SerializeField] private float height = 5f;
-    [SerializeField] private float mouseSensitivity = 3f;
-    [SerializeField] private float movementFollowSpeed = 2f;
+    // inspector variables
+    [SerializeField, Tooltip("Player transform for camera to follow")]
+    private Transform playerTransform;
+    [SerializeField, Tooltip("Camera offset from player (x not used)")]
+    private Vector3 offsetPosition = new Vector3(0, 5, 5);
+    [SerializeField]
+    private bool lookAt = true;
+    [SerializeField, Tooltip("Smooth time for camera movement")]
+    private float smoothTime = 0.1f;
 
-    private float yaw = 0f;
-    private float pitch = 20f;
+    // privates
+    private Transform _mainCam = null;
+    private Vector3 currentVelocity = Vector3.zero;
 
+    // Use this for initialization
     private void Start()
     {
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-    }
-
-    private void LateUpdate()
-    {
-        HandleInput();
-        AutoAlignToMovement();
-        UpdateCameraPosition();
-    }
-
-    private void HandleInput()
-    {
-        yaw += Input.GetAxis("Mouse X") * mouseSensitivity;
-        pitch -= Input.GetAxis("Mouse Y") * mouseSensitivity;
-        pitch = Mathf.Clamp(pitch, -60f, 60f);
-    }
-
-    private void AutoAlignToMovement()
-    {
-        Vector3 gravityUp = (playerTransform.position - planetTransform.position).normalized;
-
-        float h = Input.GetAxis("Horizontal");
-        float v = Input.GetAxis("Vertical");
-        Vector3 inputDir = new Vector3(h, 0, v);
-
-        if (inputDir.sqrMagnitude > 0.1f)
+        if (playerTransform == null)
         {
-            // Convert input to world space relative to gravity up
-            Vector3 camForward = Vector3.ProjectOnPlane(transform.forward, gravityUp).normalized;
-            Vector3 camRight = Vector3.Cross(gravityUp, camForward);
-
-            Vector3 moveWorldDir = (camForward * v + camRight * h).normalized;
-
-            // Calculate angle difference and smoothly rotate yaw
-            float targetYaw = Mathf.Atan2(moveWorldDir.x, moveWorldDir.z) * Mathf.Rad2Deg;
-            yaw = Mathf.LerpAngle(yaw, targetYaw, movementFollowSpeed * Time.deltaTime);
+            Debug.LogError("CameraMovement is missing playerTransform");
+        }
+        else
+        {
+            _mainCam = Camera.main.transform;
         }
     }
 
-    private void UpdateCameraPosition()
+    // Update is called once per frame
+    private void LateUpdate()
     {
-        Vector3 gravityUp = (playerTransform.position - planetTransform.position).normalized;
+        UpdateCamera();
+    }
 
-        Quaternion rotation = Quaternion.AngleAxis(yaw, gravityUp) * Quaternion.AngleAxis(pitch, Vector3.right);
+    /// <summary>
+    /// Update camera position and rotation
+    /// </summary>
+    private void UpdateCamera()
+    {
+        if (playerTransform == null)
+        {
+            return;
+        }
 
-        Vector3 offset = rotation * new Vector3(0, height, -distance);
-        transform.position = playerTransform.position + offset;
+        Vector3 targetPosition = playerTransform.position 
+                                - (playerTransform.forward * offsetPosition.z) 
+                                + (playerTransform.up * offsetPosition.y);
 
-        transform.LookAt(playerTransform, gravityUp);
+        // Smoothly move camera towards target position
+        transform.position = Vector3.SmoothDamp(transform.position, targetPosition, ref currentVelocity, smoothTime);
+
+        if (lookAt)
+        {
+            _mainCam.LookAt(playerTransform, playerTransform.up);
+        }
+        else
+        {
+            _mainCam.LookAt(playerTransform);
+        }
     }
 }

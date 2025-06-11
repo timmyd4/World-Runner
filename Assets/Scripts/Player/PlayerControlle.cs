@@ -8,97 +8,38 @@ public class PlayerController_RB : MonoBehaviour
     [Header("Player Settings")]
     public float speed = 10.0f;
     public float jumpForce = 50.0f;
-    public float maxJumpHeight = 100.0f;
     public float mouseSensitivity = 3.0f;
 
     [Header("References")]
-    public Transform cameraTransform;
-    public ParticleSystem landingParticles;
-    //public ParticleSystem takeOffParticles;
-
+    public Transform cameraRigTransform;  // Reference to CameraRig (NOT the camera directly!)
+    public Transform meshTransform;
     private Rigidbody _playerRB;
-    private Transform _playerMesh;
     private FakeGravityBody _worldGravity;
-    private List<GameObject> _worlds = new List<GameObject>();
-    private int _currentWorld = 0;
+
     private Vector3 _moveDirection;
     private float verticalRotation = 0f;
 
-    private void Start()
+    void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
         _playerRB = GetComponent<Rigidbody>();
-        _playerMesh = transform.GetChild(0).transform;
         _worldGravity = GetComponent<FakeGravityBody>();
-
-        _worlds.AddRange(GameObject.FindGameObjectsWithTag("World"));
-        _currentWorld = GetCurrentWorldIndex();
     }
 
-    private void Update()
+    void Update()
     {
         if (_worldGravity.Attractor == null) return;
 
         HandleMouseLook();
-
-        Vector3 camForward = cameraTransform.forward;
-        Vector3 camRight = cameraTransform.right;
-        Vector3 gravityUp = (transform.position - _worldGravity.Attractor.transform.position).normalized;
-
-        camForward = Vector3.ProjectOnPlane(camForward, gravityUp).normalized;
-        camRight = Vector3.ProjectOnPlane(camRight, gravityUp).normalized;
-
-        float h = Input.GetAxis("Horizontal");
-        float v = Input.GetAxis("Vertical");
-
-        _moveDirection = (camForward * v + camRight * h).normalized;
-
-        if (Input.GetKeyDown(KeyCode.Space) && IsGrounded())
-        {
-            Jump();
-        }
-
-        RotateForward();
+        HandleMovement();
+        RotateMesh();
     }
 
-    private void FixedUpdate()
+    void FixedUpdate()
     {
         _playerRB.MovePosition(_playerRB.position + _moveDirection * speed * Time.fixedDeltaTime);
-    }
-
-    private void Jump()
-    {
-        Vector3 gravityDir = (_worlds[_currentWorld].transform.position - transform.position).normalized;
-        _playerRB.AddForce(-gravityDir * jumpForce, ForceMode.Impulse);
-        //takeOffParticles?.Play();
-    }
-
-    private void RotateForward()
-    {
-        if (_moveDirection.sqrMagnitude > 0.001f)
-        {
-            Quaternion targetRotation = Quaternion.LookRotation(_moveDirection, transform.up);
-            _playerMesh.rotation = Quaternion.Slerp(_playerMesh.rotation, targetRotation, 10f * Time.deltaTime);
-        }
-    }
-
-    private int GetCurrentWorldIndex()
-    {
-        string worldName = _worldGravity.Attractor.gameObject.name;
-        for (int i = 0; i < _worlds.Count; i++)
-        {
-            if (_worlds[i].name == worldName) return i;
-        }
-        Debug.LogWarning($"World '{worldName}' not found in _worlds list.");
-        return 0;
-    }
-
-    private bool IsGrounded()
-    {
-        Vector3 gravityDir = (_worlds[_currentWorld].transform.position - transform.position).normalized;
-        return Physics.Raycast(transform.position, gravityDir, out _, 1.2f);
     }
 
     private void HandleMouseLook()
@@ -106,12 +47,40 @@ public class PlayerController_RB : MonoBehaviour
         float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
         float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
 
-        // Horizontal rotation (yaw)
-        transform.Rotate(0f, mouseX, 0f);
+        Vector3 gravityUp = (transform.position - _worldGravity.Attractor.transform.position).normalized;
 
-        // Vertical rotation (pitch, clamped)
+        // Yaw rotation (around gravity up)
+        Quaternion yawRotation = Quaternion.AngleAxis(mouseX, gravityUp);
+        cameraRigTransform.rotation = yawRotation * cameraRigTransform.rotation;
+
+        // Pitch rotation (local right axis)
         verticalRotation -= mouseY;
         verticalRotation = Mathf.Clamp(verticalRotation, -80f, 80f);
-        cameraTransform.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
+
+        Vector3 rightAxis = cameraRigTransform.right;
+        cameraRigTransform.rotation = Quaternion.AngleAxis(-mouseY, rightAxis) * cameraRigTransform.rotation;
+    }
+
+    private void HandleMovement()
+    {
+        Vector3 gravityUp = (transform.position - _worldGravity.Attractor.transform.position).normalized;
+
+        // Get camera forward/right relative to gravity
+        Vector3 camForward = Vector3.ProjectOnPlane(cameraRigTransform.forward, gravityUp).normalized;
+        Vector3 camRight = Vector3.ProjectOnPlane(cameraRigTransform.right, gravityUp).normalized;
+
+        float h = Input.GetAxis("Horizontal");
+        float v = Input.GetAxis("Vertical");
+
+        _moveDirection = (camForward * v + camRight * h).normalized;
+    }
+
+    private void RotateMesh()
+    {
+        if (_moveDirection.sqrMagnitude > 0.001f)
+        {
+            Quaternion targetRotation = Quaternion.LookRotation(_moveDirection, transform.up);
+            meshTransform.rotation = Quaternion.Slerp(meshTransform.rotation, targetRotation, 10f * Time.deltaTime);
+        }
     }
 }
