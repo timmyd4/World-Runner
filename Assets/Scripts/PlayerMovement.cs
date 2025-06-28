@@ -1,40 +1,38 @@
 using UnityEngine;
 
 [RequireComponent(typeof(CharacterController))]
+[RequireComponent(typeof(CapsuleCollider))]
 public class PlayerMovement : MonoBehaviour
 {
     public float speed = 10f;
     public float rotationSpeed = 200f;
     public float gravity = -9.81f;
     public float jumpHeight = 2f;
-    public Transform groundCheck;
-    public float groundDistance = 0.4f;
     public LayerMask groundMask;
+    public int maxJumps = 2;
 
     private CharacterController controller;
+    private CapsuleCollider capsule;
     private Vector3 velocity;
     private bool isGrounded;
     private bool wasGroundedLastFrame = false;
-    public int maxJumps = 2;
     private int jumpCount = 0;
-    private float jumpCooldown = 0.1f; // cooldown to ignore brief grounded check
+    private float jumpCooldown = 0.1f;
     private float jumpCooldownTimer = 0f;
 
     void Start()
     {
         controller = GetComponent<CharacterController>();
+        capsule = GetComponent<CapsuleCollider>();
     }
 
     void Update()
     {
-        // Track cooldown from last jump
         if (jumpCooldownTimer > 0f)
             jumpCooldownTimer -= Time.deltaTime;
 
-        // Ground check
-        isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
+        isGrounded = IsGroundedByCollider();
 
-        // If grounded after falling (not immediately after jumping), reset jumpCount
         if (isGrounded && !wasGroundedLastFrame && jumpCooldownTimer <= 0f)
         {
             jumpCount = 0;
@@ -42,7 +40,6 @@ public class PlayerMovement : MonoBehaviour
                 velocity.y = -2f;
         }
 
-        // Jump
         if (Input.GetButtonDown("Jump") && jumpCount < maxJumps)
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
@@ -52,7 +49,6 @@ public class PlayerMovement : MonoBehaviour
                 jumpCooldownTimer = jumpCooldown;
         }
 
-        // Input
         float h = Input.GetAxisRaw("Horizontal");
         float v = Input.GetAxisRaw("Vertical");
 
@@ -61,13 +57,17 @@ public class PlayerMovement : MonoBehaviour
 
         Vector3 move = transform.forward * v;
 
-        // Apply gravity
         velocity.y += gravity * Time.deltaTime;
 
-        // Move character
         controller.Move((move * speed + velocity) * Time.deltaTime);
 
-        // Store grounded state for next frame
         wasGroundedLastFrame = isGrounded;
+    }
+
+    bool IsGroundedByCollider()
+    {
+        Vector3 origin = transform.position + Vector3.up * 0.1f;
+        float rayLength = capsule.bounds.extents.y + 0.05f;
+        return Physics.Raycast(origin, Vector3.down, rayLength, groundMask);
     }
 }

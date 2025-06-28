@@ -1192,6 +1192,7 @@ GameObject:
   - component: {fileID: 514958029}
   - component: {fileID: 514958035}
   - component: {fileID: 514958034}
+  - component: {fileID: 514958036}
   m_Layer: 0
   m_Name: Capsule
   m_TagString: Player
@@ -1332,8 +1333,6 @@ MonoBehaviour:
   rotationSpeed: 200
   gravity: -9.81
   jumpHeight: 2
-  groundCheck: {fileID: 741803667}
-  groundDistance: 0.4
   groundMask:
     serializedVersion: 2
     m_Bits: 8
@@ -1363,6 +1362,29 @@ CharacterController:
   m_StepOffset: 0.3
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!136 &514958036
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 514958027}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 2
+  m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &535995541
 GameObject:
