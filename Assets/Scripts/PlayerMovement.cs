@@ -14,8 +14,11 @@ public class PlayerMovement : MonoBehaviour
     private CharacterController controller;
     private Vector3 velocity;
     private bool isGrounded;
+    private bool wasGroundedLastFrame = false;
     public int maxJumps = 2;
     private int jumpCount = 0;
+    private float jumpCooldown = 0.1f; // cooldown to ignore brief grounded check
+    private float jumpCooldownTimer = 0f;
 
     void Start()
     {
@@ -24,21 +27,29 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
+        // Track cooldown from last jump
+        if (jumpCooldownTimer > 0f)
+            jumpCooldownTimer -= Time.deltaTime;
+
         // Ground check
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
 
-        if (isGrounded)
+        // If grounded after falling (not immediately after jumping), reset jumpCount
+        if (isGrounded && !wasGroundedLastFrame && jumpCooldownTimer <= 0f)
         {
             jumpCount = 0;
             if (velocity.y < 0)
                 velocity.y = -2f;
         }
 
-        // Jump (before movement)
+        // Jump
         if (Input.GetButtonDown("Jump") && jumpCount < maxJumps)
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
             jumpCount++;
+
+            if (jumpCooldownTimer <= 0f)
+                jumpCooldownTimer = jumpCooldown;
         }
 
         // Input
@@ -53,7 +64,10 @@ public class PlayerMovement : MonoBehaviour
         // Apply gravity
         velocity.y += gravity * Time.deltaTime;
 
-        // Move controller
+        // Move character
         controller.Move((move * speed + velocity) * Time.deltaTime);
+
+        // Store grounded state for next frame
+        wasGroundedLastFrame = isGrounded;
     }
 }
