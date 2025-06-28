@@ -9,16 +9,12 @@ public class PlayerMovement : MonoBehaviour
     public float gravity = -9.81f;
     public float jumpHeight = 2f;
     public LayerMask groundMask;
-    public int maxJumps = 2;
 
     private CharacterController controller;
     private CapsuleCollider capsule;
     private Vector3 velocity;
     private bool isGrounded;
-    private bool wasGroundedLastFrame = false;
-    private int jumpCount = 0;
-    private float jumpCooldown = 0.1f;
-    private float jumpCooldownTimer = 0f;
+    private bool canJump = true;
 
     void Start()
     {
@@ -28,25 +24,22 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
-        if (jumpCooldownTimer > 0f)
-            jumpCooldownTimer -= Time.deltaTime;
-
         isGrounded = IsGroundedByCollider();
 
-        if (isGrounded && !wasGroundedLastFrame && jumpCooldownTimer <= 0f)
+        // Draw the ray in Scene view for debug
+        Debug.DrawRay(GetRayOrigin(), Vector3.down * GetRayLength(), Color.red);
+
+        if (isGrounded && velocity.y <= 0)
         {
-            jumpCount = 0;
+            canJump = true;
             if (velocity.y < 0)
                 velocity.y = -2f;
         }
 
-        if (Input.GetButtonDown("Jump") && jumpCount < maxJumps)
+        if (Input.GetButtonDown("Jump") && canJump && isGrounded)
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
-            jumpCount++;
-
-            if (jumpCooldownTimer <= 0f)
-                jumpCooldownTimer = jumpCooldown;
+            canJump = false;
         }
 
         float h = Input.GetAxisRaw("Horizontal");
@@ -60,14 +53,20 @@ public class PlayerMovement : MonoBehaviour
         velocity.y += gravity * Time.deltaTime;
 
         controller.Move((move * speed + velocity) * Time.deltaTime);
-
-        wasGroundedLastFrame = isGrounded;
     }
 
     bool IsGroundedByCollider()
     {
-        Vector3 origin = transform.position + Vector3.up * 0.1f;
-        float rayLength = capsule.bounds.extents.y + 0.05f;
-        return Physics.Raycast(origin, Vector3.down, rayLength, groundMask);
+        return Physics.Raycast(GetRayOrigin(), Vector3.down, GetRayLength(), groundMask);
+    }
+
+    Vector3 GetRayOrigin()
+    {
+        return transform.position + Vector3.up * 0.1f;
+    }
+
+    float GetRayLength()
+    {
+        return capsule.bounds.extents.y + 0.2f;
     }
 }
