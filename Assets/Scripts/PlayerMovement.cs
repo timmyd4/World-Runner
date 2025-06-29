@@ -5,6 +5,7 @@ using UnityEngine;
 public class PlayerMovement : MonoBehaviour
 {
     public float speed = 10f;
+    public float runMultiplier = 1.5f;
     public float rotationSpeed = 200f;
     public float gravity = -9.81f;
     public float jumpHeight = 2f;
@@ -48,11 +49,13 @@ public class PlayerMovement : MonoBehaviour
         if (h != 0)
             transform.Rotate(Vector3.up, h * rotationSpeed * Time.deltaTime);
 
-        Vector3 move = transform.forward * v;
+        bool isRunning = Input.GetKey(KeyCode.LeftShift);
+        float currentSpeed = speed * (isRunning ? runMultiplier : 1f);
+        Vector3 move = transform.forward * v * currentSpeed;
 
         velocity.y += gravity * Time.deltaTime;
 
-        controller.Move((move * speed + velocity) * Time.deltaTime);
+        controller.Move((move + velocity) * Time.deltaTime);
     }
 
     bool IsGroundedByCollider()
