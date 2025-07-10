@@ -4,7 +4,7 @@ using System.Collections;
 public class GunRaycast : MonoBehaviour
 {
     public float damage = 10f;
-    public float range = 100f;
+    public float range = 500f;
     public Camera playerCamera;
     public Transform firePoint; // Player or gun position
 
@@ -18,27 +18,36 @@ public class GunRaycast : MonoBehaviour
 
     void Shoot()
     {
-        // Get direction from firePoint toward mouse click
+        // Get the world point the mouse is pointing at
         Ray camRay = playerCamera.ScreenPointToRay(Input.mousePosition);
-        Vector3 origin = firePoint.position;
-        Vector3 direction = (camRay.GetPoint(1f) - origin).normalized;
+        Plane groundPlane = new Plane(Vector3.up, firePoint.position); // Adjust if not shooting on Y plane
 
-        Ray ray = new Ray(origin, direction);
-        RaycastHit hit;
-
-        if (Physics.Raycast(ray, out hit, range))
+        float rayDistance;
+        if (groundPlane.Raycast(camRay, out rayDistance))
         {
-            EnemyStats enemy = hit.transform.GetComponentInParent<EnemyStats>();
-            if (enemy != null)
+            Vector3 targetPoint = camRay.GetPoint(rayDistance);
+            Vector3 direction = (targetPoint - firePoint.position).normalized;
+
+            Ray ray = new Ray(firePoint.position, direction);
+            RaycastHit hit;
+
+            if (Physics.Raycast(ray, out hit, range))
             {
-                enemy.TakeDamage(damage);
+                EnemyStats enemy = hit.transform.GetComponentInParent<EnemyStats>();
+                if (enemy != null)
+                {
+                    Debug.Log("Hit enemy: " + hit.transform.name);
+                    enemy.TakeDamage(damage);
+                }
+
+                StartCoroutine(ShowImpactRay(ray.origin, hit.point));
+            }
+            else
+            {
+                StartCoroutine(ShowImpactRay(ray.origin, ray.origin + direction * range));
             }
 
-            StartCoroutine(ShowImpactRay(origin, hit.point));
-        }
-        else
-        {
-            StartCoroutine(ShowImpactRay(origin, origin + direction * range));
+            Debug.DrawRay(ray.origin, direction * range, Color.red, 1f);
         }
     }
 
